@@ -89,4 +89,4 @@ If this tool helped you, please consider giving a star ⭐
 **kaantellioglu**
 
 GitHub:  
-https://github.com/kaantellioglu/xiaomi17-pro-max-push-fix-tool
+https://github.com/kaantellioglu/xiaomi-push-fix-tool
