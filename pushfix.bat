@@ -3,70 +3,75 @@ setlocal enabledelayedexpansion
 cd /d "%~dp0"
 chcp 65001 >nul 2>&1
 
+echo ================================================
+echo   XIAOMI PUSH FIX TOOL v1.0
+echo   GitHub: https://github.com/kaantellioglu/xiaomi17-pro-max-push-fix-tool
+echo ================================================
+
 set LOGFILE=verify_log_%date:~-4%%date:~3,2%%date:~0,2%_%time:~0,2%%time:~3,2%.txt
 set LOGFILE=%LOGFILE: =0%
 
-echo ================================================
-echo   XIAOMI CHINA ROM - BILDIRIM DOGRULAMA ARACI
-echo   %date% %time%
-echo ================================================
-echo. 
-echo Rapor: %LOGFILE%
+echo.
+echo Log file: %LOGFILE%
 echo.
 
-:: ── ADB BAGLANTI KONTROLU ──────────────────────────────────────────────
-echo [1/8] ADB baglantisi kontrol ediliyor...
+:: ── ADB CONNECTION CHECK ───────────────────────────
+echo [1/8] Checking ADB connection...
 .\adb start-server >nul 2>&1
 .\adb get-state 1>nul 2>nul
 if errorlevel 1 (
-    echo [HATA] Telefon bagli degil veya USB debugging kapali!
-    echo        Telefonu tak, "Allow USB Debugging" iznini onayla, tekrar calistir.
+    echo [ERROR] Device not connected or USB debugging is disabled!
+    echo         Connect your phone and allow USB debugging.
     pause
     exit /b 1
 )
-echo [OK] Cihaz baglandi.
+
+echo [OK] Device connected.
+
+:: ── DEVICE INFO ───────────────────────────────────
 for /f "delims=" %%D in ('.\adb shell getprop ro.product.model 2^>nul') do set MODEL=%%D
 for /f "delims=" %%D in ('.\adb shell getprop ro.build.version.release 2^>nul') do set ANDROID=%%D
 for /f "delims=" %%D in ('.\adb shell getprop ro.miui.ui.version.name 2^>nul') do set MIUI=%%D
 for /f "delims=" %%D in ('.\adb shell getprop ro.product.region 2^>nul') do set REGION=%%D
+
 echo     Model   : %MODEL%
 echo     Android : %ANDROID%
 echo     MIUI    : %MIUI%
 echo     Region  : %REGION%
+
+echo [DEVICE] %MODEL% Android=%ANDROID% MIUI=%MIUI% Region=%REGION% >> %LOGFILE%
 echo.
-echo [CIHAZ] %MODEL% Android=%ANDROID% MIUI=%MIUI% Region=%REGION% >> %LOGFILE%
 
-
-:: ── DOZE DURUMU ───────────────────────────────────────────────────────
-echo [2/8] Doze (deviceidle) durumu kontrol ediliyor...
+:: ── DOZE STATUS ───────────────────────────────────
+echo [2/8] Checking Doze (device idle) status...
 .\adb shell dumpsys deviceidle > _doze_raw.txt 2>&1
 
 findstr /i "mEnabled" _doze_raw.txt | findstr /i "false" >nul 2>&1
 if not errorlevel 1 (
-    echo [OK] Doze KAPALI  - push icin ideal durum
-    echo [DOZE] KAPALI >> %LOGFILE%
+    echo [OK] Doze is DISABLED (ideal for push)
+    echo [DOZE] DISABLED >> %LOGFILE%
 ) else (
     findstr /i "mEnabled" _doze_raw.txt | findstr /i "true" >nul 2>&1
     if not errorlevel 1 (
-        echo [UYARI] Doze ACIK - reboot sonrasi fix.bat calistirmadiniz!
-        echo [DOZE] ACIK - fix.bat gerekli >> %LOGFILE%
+        echo [WARNING] Doze is ENABLED - run fix script after reboot!
+        echo [DOZE] ENABLED >> %LOGFILE%
     ) else (
-        echo [BILGI] Doze durumu tespit edilemedi - ham cikti asagida:
-        findstr /i "mEnabled\|enabled\|disabled\|idle" _doze_raw.txt
+        echo [INFO] Unable to determine Doze state:
+        findstr /i "enabled\|disabled\|idle" _doze_raw.txt
     )
 )
 echo.
 
-:: ── DOZE MODU (light/deep/active) ─────────────────────────────────────
-echo [3/8] Doze modu ayrinti...
+:: ── DOZE DETAIL ───────────────────────────────────
+echo [3/8] Doze detailed state:
 for /f "delims=" %%L in ('.\adb shell dumpsys deviceidle ^| findstr /i "mState\|mLightState\|mode"') do (
     echo     %%L
     echo [DOZE_DETAIL] %%L >> %LOGFILE%
 )
 echo.
 
-:: ── WHİTELİST KONTROLU ────────────────────────────────────────────────
-echo [4/8] Deviceidle whitelist kontrol ediliyor...
+:: ── WHITELIST CHECK ───────────────────────────────
+echo [4/8] Checking device idle whitelist...
 
 set MISSING=0
 set FOUND=0
@@ -91,18 +96,18 @@ for %%P in (
         echo [WL_OK] %%P >> %LOGFILE%
         set /a FOUND+=1
     ) else (
-        echo   [EKSIK]   %%P  ^<-- fix.bat tekrar calistir
-        echo [WL_EKSIK] %%P >> %LOGFILE%
+        echo   [MISSING] %%P  ^<-- run fix script
+        echo [WL_MISSING] %%P >> %LOGFILE%
         set /a MISSING+=1
     )
 )
+
 echo.
-echo     Whitelist sonucu: %FOUND% tamam, %MISSING% eksik
-echo [WL_OZET] FOUND=%FOUND% MISSING=%MISSING% >> %LOGFILE%
+echo     Whitelist result: %FOUND% OK, %MISSING% missing
 echo.
 
-:: ── APPOPS RUN_IN_BACKGROUND ──────────────────────────────────────────
-echo [5/8] AppOps arka plan izinleri kontrol ediliyor...
+:: ── APPOPS CHECK ──────────────────────────────────
+echo [5/8] Checking background execution permissions...
 
 for %%P in (
     com.google.android.gms
@@ -111,14 +116,14 @@ for %%P in (
     com.whatsapp
 ) do (
     for /f "delims=" %%R in ('.\adb shell cmd appops get %%P RUN_ANY_IN_BACKGROUND 2^>nul') do (
-        echo   [%%P]  RUN_ANY_IN_BACKGROUND: %%R
-        echo [APPOPS] %%P RUN_ANY_IN_BACKGROUND=%%R >> %LOGFILE%
+        echo   [%%P]  %%R
+        echo [APPOPS] %%P %%R >> %LOGFILE%
     )
 )
 echo.
 
-:: ── NETWORK POLICY ────────────────────────────────────────────────────
-echo [6/8] Arka plan veri politikasi kontrol ediliyor...
+:: ── NETWORK POLICY ────────────────────────────────
+echo [6/8] Checking network policy...
 
 for /f "delims=" %%L in ('.\adb shell cmd netpolicy list global 2^>nul') do (
     echo   %%L
@@ -127,66 +132,59 @@ for /f "delims=" %%L in ('.\adb shell cmd netpolicy list global 2^>nul') do (
 
 .\adb shell settings get global restricted_networking_mode > _rnm.txt 2>&1
 set /p RNM=<_rnm.txt
+
 if "%RNM%"=="0" (
     echo   [OK] restricted_networking_mode = 0
 ) else (
-    echo   [UYARI] restricted_networking_mode = %RNM%  ^<-- 0 olmali
-    echo [NETPOLICY] restricted_networking_mode=%RNM% UYARI >> %LOGFILE%
+    echo   [WARNING] restricted_networking_mode = %RNM%
 )
+
 echo.
 
-:: ── GOOGLE SERVİSLERİ DURUMU ──────────────────────────────────────────
-echo [7/8] Google servisleri yukleme durumu...
+:: ── GOOGLE SERVICES ───────────────────────────────
+echo [7/8] Checking Google services...
 
 for %%P in (
     com.google.android.gms
     com.google.android.gsf
     com.android.vending
-    com.google.android.gms.persistent
 ) do (
-    .\adb shell pm list packages %%P 2>nul | findstr /i "%%P" >nul 2>&1
+    .\adb shell pm list packages %%P | findstr /i "%%P" >nul 2>&1
     if not errorlevel 1 (
-        for /f "delims=" %%V in ('.\adb shell dumpsys package %%P ^| findstr /i "versionName" 2^>nul') do (
-            echo   [OK]  %%P  %%V
-            echo [GMS] %%P %%V >> %LOGFILE%
-        )
+        echo   [OK] %%P installed
     ) else (
-        echo   [YOK] %%P KURULU DEGIL - Bu ciddi push problemi yaratir!
-        echo [GMS_YOK] %%P >> %LOGFILE%
+        echo   [MISSING] %%P not installed!
     )
 )
 echo.
 
-:: ── BACKGROUND PROCESS LIMIT ──────────────────────────────────────────
-echo [8/8] Arka plan surec limiti...
-for /f "delims=" %%L in ('.\adb shell settings get global background_process_limit 2^>nul') do (
-    set BPL=%%L
-)
+:: ── BACKGROUND LIMIT ──────────────────────────────
+echo [8/8] Checking background process limit...
+
+for /f "delims=" %%L in ('.\adb shell settings get global background_process_limit 2^>nul') do set BPL=%%L
+
 if "%BPL%"=="-1" (
-    echo   [OK] background_process_limit = -1  (limitsiz)
+    echo   [OK] background_process_limit = -1 (unlimited)
 ) else (
-    echo   [UYARI] background_process_limit = %BPL%  ^<-- -1 olmali
-    echo [BPL] %BPL% UYARI >> %LOGFILE%
+    echo   [WARNING] background_process_limit = %BPL%
 )
+
 echo.
 
-:: ── GENEL SONUC ───────────────────────────────────────────────────────
+:: ── RESULT ────────────────────────────────────────
 echo ================================================
-echo   SONUC OZETI
+echo   FINAL RESULT
 echo ================================================
+
 if %MISSING%==0 (
-    echo [BASARILI] Tum kritik paketler whitelist'te.
-    echo [SONUC] BASARILI >> %LOGFILE%
+    echo [SUCCESS] All critical packages are whitelisted.
 ) else (
-    echo [UYARI] %MISSING% paket whitelist'te eksik.
-    echo         fix.bat dosyasini tekrar calistirin!
-    echo [SONUC] EKSIK=%MISSING% >> %LOGFILE%
+    echo [WARNING] %MISSING% packages missing from whitelist.
 )
-echo.
-echo Tam rapor kaydedildi: %LOGFILE%
-echo.
 
-:: Temp dosyalari temizle
+echo.
+echo Full report saved: %LOGFILE%
+
 del _doze_raw.txt _wl_raw.txt _rnm.txt >nul 2>&1
 
 pause
