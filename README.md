@@ -1,65 +1,48 @@
-# 🚀 Xiaomi Push Fix Tool
+<p align="center">
+  <img src="https://img.icons8.com/fluency/96/android-os.png" width="80"/>
+</p>
 
-Fix delayed or missing notifications on Xiaomi China ROM / HyperOS devices using ADB.
+<h1 align="center">Xiaomi Push Fix Tool</h1>
 
----
+<p align="center">
+  Fix delayed or missing notifications on Xiaomi China ROM / HyperOS devices (No root, ADB based)
+</p>
 
-## ⚡ Features
-
-- 🔧 One-click FIX mode
-- 🔍 VERIFY mode (diagnostics)
-- 🚀 COMBO mode (recommended)
-- 📱 Multi-user support (Dual Apps / Clone Apps)
-- 🔒 No root required
-- 📊 Detailed logging system
-
----
-
-## 📱 Supported Apps
-
-- WhatsApp / WhatsApp Business
-- Telegram
-- Outlook
-- Gmail
-- All user-installed apps
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-Windows-blue"/>
+  <img src="https://img.shields.io/badge/requires-ADB-green"/>
+  <img src="https://img.shields.io/badge/root-not_required-success"/>
+  <img src="https://img.shields.io/badge/Xiaomi-HyperOS%20%7C%20MIUI-orange"/>
+</p>
 
 ---
 
-## 🛠️ How It Works
+## 🚀 Features
 
-- Disables Doze (device idle)
-- Removes background restrictions
-- Adds apps to system whitelist
-- Enables background execution permissions
+- 🔧 Fix push notifications
+- 🔍 Verify system status
+- 🚀 Combo mode (Fix + Verify)
+- 📱 Multi-user support (Dual Apps)
+- 📊 Logging system
+
+---
+
+## ❓ Why This Tool?
+
+Xiaomi China ROM aggressively kills background apps.  
+This causes delayed or missing notifications.
+
+This tool restores proper push behavior.
 
 ---
 
 ## ▶️ Usage
 
-1. Connect your phone via USB
-2. Enable USB Debugging
-3. Run:
+1. Connect phone via USB  
+2. Enable USB debugging  
+3. Run: pushfix.bat
+4. Select mode
 
+---
 
 ⭐ If this tool helped you, please give a star!
-
----
-
-## ⚠️ Important Notes
-
-- Re-run after reboot
-- May increase battery usage
-- No system modification / no root required
-
----
-
-## ⭐ Why This Tool?
-
-China ROM aggressively kills background apps.  
-This tool restores proper push notification behavior.
-
----
-
-## 📄 License
-
-MIT
